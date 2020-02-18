@@ -15,7 +15,7 @@ build:
       secretName: docker-0
   tagPolicy:
     envTemplate:
-      template: '{{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}:{{.VERSION}}'
+      template: '{{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}:v{{.VERSION}}'
 deploy:
   kubectl: {}
 profiles:
