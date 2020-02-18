@@ -8,17 +8,31 @@ build:
     kaniko:
       image: gcr.io/kaniko-project/executor:debug-v0.11.0
       cache:
-        repo: 'lazybit.ch/hooky/cache'
+        repo: 'build.yields.io/hooky/cache'
   cluster:
     namespace: jx
     dockerConfig:
-      path: ~/.docker/config.json
+      secretName: docker-0
   tagPolicy:
     envTemplate:
       template: '{{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}:{{.VERSION}}'
 deploy:
   kubectl: {}
 profiles:
+- name: pr
+  build:
+    artifacts:
+    - image: hooky
+      kaniko:
+        image: gcr.io/kaniko-project/executor:debug-v0.11.0
+        cache:
+          repo: 'build.yields.io/hooky/cache'
+    cluster:
+      namespace: jx
+      dockerConfig:
+        secretName: docker-0
+    tagPolicy:
+      gitCommit: {}
 - name: dev
   build:
     artifacts:
