@@ -1,0 +1,89 @@
+buildPack: none
+chat:
+  developerChannel: '#devops'
+  kind: slack
+  url: https://yields-io.slack.com
+  userChannel: '#devops'
+pipelineConfig:
+  pipelines:
+    pullRequest:
+      pipeline:
+        agent:
+          image: gcr.io/jenkinsxio/builder-python37:2.0.1197-538
+        environment:
+        - name: GIT_COMMITTER_EMAIL
+          value: ops@yields.io
+        - name: GIT_AUTHOR_EMAIL
+          value: ops@yields.io
+        - name: GIT_COMMITTER_NAME
+          value: y-ops
+        - name: GIT_AUTHOR_NAME
+          value: y-ops
+        - name: BASE_WORKSPACE
+          value: /workspace/source
+        - name: DOCKER_REGISTRY
+          value: build.yields.io
+        stages:
+        - name: pullRequest
+          options:
+            containerOptions:
+              name: ""
+              resources:
+                limits:
+                  cpu: "2"
+                  memory: 2Gi
+                requests:
+                  cpu: "1"
+                  memory: 1Gi
+          steps:
+          - args:
+            - build
+            - -p
+            - pr
+            - -d
+            - ${DOCKER_REGISTRY}
+            command: skaffold
+            image: gcr.io/k8s-skaffold/skaffold:v1.3.1
+            name: skaffold
+    release:
+      pipeline:
+        agent:
+          image: gcr.io/jenkinsxio/builder-scala:0.1.744
+        environment:
+        - name: GIT_COMMITTER_EMAIL
+          value: ops@yields.io
+        - name: GIT_AUTHOR_EMAIL
+          value: ops@yields.io
+        - name: GIT_COMMITTER_NAME
+          value: y-ops
+        - name: GIT_AUTHOR_NAME
+          value: y-ops
+        - name: BASE_WORKSPACE
+          value: /workspace/source
+        - name: DOCKER_REGISTRY
+          value: build.yields.io
+        stages:
+        - name: release
+          options:
+            containerOptions:
+              name: ""
+              resources:
+                limits:
+                  cpu: "2"
+                  memory: 2Gi
+                requests:
+                  cpu: "1"
+                  memory: 1Gi
+          steps:
+          - args:
+            - build
+            command: skaffold
+            image: gcr.io/k8s-skaffold/skaffold:v1.3.1
+            name: skaffold
+          - args:
+            - step
+            - changelog
+            - --version
+            - ${VERSION}
+            command: jx
+            name: changelog
