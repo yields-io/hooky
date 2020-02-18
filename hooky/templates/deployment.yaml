@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hooky.fullname" . }}
+  labels:
+    {{- include "hooky.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "hooky.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "hooky.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+    {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ include "hooky.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+          - name: ANCHORE_CLI_USER
+            value: admin
+          - name: ANCHORE_CLI_URL
+            value: http://{{ .Release.Name }}-anchore-engine-api:8228/v1
+          - name: ANCHORE_CLI_PASS
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "hooky.fullname" . }}-anchore-engine
+                key: ANCHORE_ADMIN_PASSWORD
+          - name: SLACK_SIGNING_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "hooky.fullname" . }}
+                key: SLACK_SIGNING_SECRET
+          - name: SLACK_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "hooky.fullname" . }}
+                key: SLACK_API_TOKEN
+          {{- range .Values.redis.existingSecrets }}
+          - name: REDIS_PASS
+            valueFrom:
+              secretKeyRef:
+                name: {{ .name }}
+                key: {{ .key }}
+          {{- end }}
+          envFrom:
+          - configMapRef:
+              name: {{ include "hooky.fullname" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+

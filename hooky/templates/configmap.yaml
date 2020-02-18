@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hooky.fullname" . }}
+  labels:
+    {{ include "hooky.labels" . | nindent 4 }}
+{{- if .Values.extraLabels }}
+{{ toYaml .Values.extraLabels | indent 4 }}
+{{- end }}
+data:
+  SLACK_CHANNEL: {{ .Values.slack.channel }}
